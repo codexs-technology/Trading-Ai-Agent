@@ -1,0 +1,28 @@
+import { env } from '@codex-trading/config';
+
+export const config = {
+  port: env.PORT,
+  apiUrl: env.API_URL,
+  wsPort: env.WS_PORT,
+  corsOrigin: env.CORS_ORIGIN,
+  jwtSecret: env.JWT_SECRET,
+  jwtExpiresIn: env.JWT_EXPIRES_IN,
+  refreshTokenExpiresIn: env.REFRESH_TOKEN_EXPIRES_IN,
+  bcryptRounds: env.BCRYPT_ROUNDS,
+  rateLimitWindowMs: env.RATE_LIMIT_WINDOW_MS,
+  rateLimitMaxRequests: env.RATE_LIMIT_MAX_REQUESTS,
+  openaiApiKey: env.OPENAI_API_KEY,
+  openaiModel: env.OPENAI_MODEL,
+  demoMode: env.DEMO_MODE,
+  marketTickIntervalMs: env.MARKET_TICK_INTERVAL_MS,
+  marketVolatility: env.MARKET_VOLATILITY,
+  marketTrend: env.MARKET_TREND,
+  marketVolumeMultiplier: env.MARKET_VOLUME_MULTIPLIER,
+  marketSpreadBps: env.MARKET_SPREAD_BPS,
+  makerFeeBps: env.MAKER_FEE_BPS,
+  takerFeeBps: env.TAKER_FEE_BPS,
+  maxRiskPerTradePct: env.MAX_RISK_PER_TRADE_PCT,
+  maxPortfolioConcentrationPct: env.MAX_PORTFOLIO_CONCENTRATION_PCT,
+  logLevel: env.LOG_LEVEL,
+  logFormat: env.LOG_FORMAT,
+} as const;

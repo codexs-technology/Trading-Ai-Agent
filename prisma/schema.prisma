@@ -1,0 +1,394 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String
+  role          String   @default("USER")
+  isActive      Boolean  @default(true)
+  emailVerified Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  profile           Profile?
+  sessions          Session[]
+  securitySettings  SecuritySetting?
+  wallets           Wallet[]
+  orders            Order[]
+  trades            Trade[]
+  portfolioSnapshots PortfolioSnapshot[]
+  transactions      Transaction[]
+  notifications     Notification[]
+  watchlist         Watchlist[]
+  priceAlerts       PriceAlert[]
+  aiConversations   AIConversation[]
+  adminActions      AdminAction[]
+
+  @@index([email])
+  @@index([role])
+  @@index([createdAt])
+}
+
+model Profile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  firstName String?
+  lastName  String?
+  avatarUrl String?
+  timezone  String   @default("UTC")
+  locale    String   @default("en")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+model SecuritySetting {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  twoFactorEnabled Boolean  @default(false)
+  twoFactorSecret String?
+  loginAlerts     Boolean  @default(true)
+  apiKeysEnabled  Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TradingPair {
+  id              String   @id @default(uuid())
+  symbol          String   @unique
+  baseAsset       String
+  quoteAsset      String
+  basePrecision   Int      @default(8)
+  quotePrecision  Int      @default(2)
+  minOrderSize    Float    @default(0.00001)
+  maxOrderSize    Float    @default(1000000)
+  tickSize        Float    @default(0.01)
+  makerFeeBps     Int      @default(10)
+  takerFeeBps     Int      @default(10)
+  isActive        Boolean  @default(true)
+  isDemo          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  candles          Candle[]
+  marketSnapshots  MarketSnapshot[]
+  orders           Order[]
+  trades           Trade[]
+  watchlistItems   Watchlist[]
+  priceAlerts      PriceAlert[]
+  simulatorConfigs SimulatorConfig[]
+
+  @@index([symbol])
+  @@index([isActive])
+}
+
+model MarketSnapshot {
+  id           String   @id @default(uuid())
+  symbol       String
+  price        Float
+  bid          Float
+  ask          Float
+  high24h      Float
+  low24h       Float
+  volume24h    Float
+  change24h    Float
+  changePct24h Float
+  timestamp    DateTime @default(now())
+
+  tradingPair TradingPair @relation(fields: [symbol], references: [symbol], onDelete: Cascade)
+
+  @@index([symbol, timestamp])
+}
+
+model Candle {
+  id        String   @id @default(uuid())
+  symbol    String
+  interval  String
+  timestamp DateTime
+  open      Float
+  high      Float
+  low       Float
+  close     Float
+  volume    Float
+  createdAt DateTime @default(now())
+
+  tradingPair TradingPair @relation(fields: [symbol], references: [symbol], onDelete: Cascade)
+
+  @@unique([symbol, interval, timestamp])
+  @@index([symbol, interval, timestamp])
+  @@index([timestamp])
+}
+
+model Order {
+  id            String   @id @default(uuid())
+  userId        String
+  symbol        String
+  side          String
+  type          String
+  status        String   @default("OPEN")
+  price         Float?
+  quantity      Float
+  filledQty     Float    @default(0)
+  remainingQty  Float
+  fee           Float    @default(0)
+  feeAsset      String?
+  avgFillPrice  Float?
+  clientOrderId String?  @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  filledAt      DateTime?
+  cancelledAt   DateTime?
+
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tradingPair TradingPair @relation(fields: [symbol], references: [symbol], onDelete: Cascade)
+  trades   Trade[]
+
+  @@index([userId, status])
+  @@index([symbol, status])
+  @@index([createdAt])
+  @@index([clientOrderId])
+}
+
+model Trade {
+  id          String   @id @default(uuid())
+  orderId     String
+  userId      String
+  symbol      String
+  side        String
+  price       Float
+  quantity    Float
+  fee         Float
+  feeAsset    String
+  isMaker     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tradingPair TradingPair @relation(fields: [symbol], references: [symbol], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([symbol, createdAt])
+  @@index([orderId])
+  @@index([createdAt])
+}
+
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String
+  asset     String
+  balance   Float    @default(0)
+  locked    Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions  WalletTransaction[]
+
+  @@unique([userId, asset])
+  @@index([userId])
+}
+
+model WalletTransaction {
+  id            String   @id @default(uuid())
+  walletId      String
+  type          String
+  amount        Float
+  balanceBefore Float
+  balanceAfter  Float
+  referenceId   String?
+  referenceType String?
+  description   String?
+  createdAt     DateTime @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId, createdAt])
+  @@index([referenceId])
+}
+
+model PortfolioSnapshot {
+  id            String   @id @default(uuid())
+  userId        String
+  totalValue    Float
+  totalPnl      Float    @default(0)
+  dailyPnl      Float    @default(0)
+  unrealizedPnl Float    @default(0)
+  realizedPnl   Float    @default(0)
+  winRate       Float?
+  totalTrades   Int      @default(0)
+  winningTrades Int      @default(0)
+  losingTrades  Int      @default(0)
+  timestamp     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, timestamp])
+  @@index([timestamp])
+}
+
+model Transaction {
+  id              String   @id @default(uuid())
+  userId          String
+  type            String
+  asset           String
+  amount          Float
+  price           Float?
+  value           Float?
+  fee             Float    @default(0)
+  status          String   @default("COMPLETED")
+  description     String?
+  metadata        String?
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([type, createdAt])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  data      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  readAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt])
+  @@index([userId, createdAt])
+}
+
+model Watchlist {
+  id        String   @id @default(uuid())
+  userId    String
+  symbol    String
+  createdAt DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tradingPair  TradingPair  @relation(fields: [symbol], references: [symbol], onDelete: Cascade)
+
+  @@unique([userId, symbol])
+  @@index([userId])
+}
+
+model PriceAlert {
+  id          String   @id @default(uuid())
+  userId      String
+  symbol      String
+  condition   String
+  targetValue Float
+  isActive    Boolean  @default(true)
+  triggeredAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tradingPair TradingPair  @relation(fields: [symbol], references: [symbol], onDelete: Cascade)
+
+  @@index([userId, isActive])
+  @@index([symbol, isActive])
+}
+
+model AdminAction {
+  id          String   @id @default(uuid())
+  adminId     String
+  action      String
+  targetType  String?
+  targetId    String?
+  description String?
+  metadata    String?
+  createdAt   DateTime @default(now())
+
+  admin User @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId, createdAt])
+  @@index([action, createdAt])
+  @@index([targetType, targetId])
+}
+
+model AIConversation {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages AIMessage[]
+
+  @@index([userId, updatedAt])
+}
+
+model AIMessage {
+  id             String   @id @default(uuid())
+  conversationId String
+  role           String
+  content        String
+  toolCalls      String?
+  toolResults    String?
+  metadata       String?
+  createdAt      DateTime @default(now())
+
+  conversation AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
+
+model SimulatorConfig {
+  id              String   @id @default(uuid())
+  symbol          String   @unique
+  volatility      Float    @default(0.02)
+  trend           String   @default("neutral")
+  tickIntervalMs  Int      @default(1000)
+  volumeMultiplier Float   @default(1.0)
+  spreadBps       Int      @default(5)
+  isRunning       Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tradingPair TradingPair @relation(fields: [symbol], references: [symbol], onDelete: Cascade)
+}
+
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  category  String
+  isPublic  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+}
