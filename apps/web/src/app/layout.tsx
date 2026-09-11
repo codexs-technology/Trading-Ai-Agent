@@ -3,7 +3,7 @@ import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { QueryProvider } from '@/components/query-provider';
 import { AuthProvider } from '@/components/auth-provider';
-import { ToasterProvider, Toaster } from '@/components/toaster-provider';
+import { ToasterProvider } from '@/components/toaster-provider';
 import { Navbar } from '@/components/navbar';
 
 import './globals.css';
@@ -34,7 +34,6 @@ export default function RootLayout({
                   <Navbar />
                   <main className="container mx-auto px-4 py-6">{children}</main>
                 </div>
-                <Toaster />
               </ToasterProvider>
             </AuthProvider>
           </QueryProvider>
